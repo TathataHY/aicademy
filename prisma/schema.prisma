@@ -1,0 +1,186 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id
+  name          String
+  image         String?
+  admin         Admin?
+  student       Student?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  CreditBalance CreditBalance[]
+  Transaction   Transaction[]
+  currentModel  AIModel         @default(gpt_4)
+}
+
+model Admin {
+  id        String   @id
+  user      User     @relation(fields: [id], references: [id])
+  courses   Course[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id            String         @id
+  user          User           @relation(fields: [id], references: [id])
+  conversations Conversation[]
+  tests         Test[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Course {
+  id          Int       @id @default(autoincrement())
+  title       String    @unique
+  description String?
+  image       String?
+  published   Boolean?  @default(false)
+  chapters    Chapter[]
+  admin       Admin     @relation(fields: [adminUid], references: [id])
+  adminUid    String
+  tests       Test[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Chapter {
+  id            Int            @id @default(autoincrement())
+  title         String
+  content       String
+  course        Course         @relation(fields: [courseId], references: [id])
+  courseId      Int
+  questions     Question[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Conversation {
+  id         Int       @id @default(autoincrement())
+  chapter    Chapter   @relation(fields: [chapterId], references: [id])
+  chapterId  Int
+  student    Student   @relation(fields: [studentUid], references: [id])
+  studentUid String
+  messages   Message[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([chapterId, studentUid])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  content        String
+  sender         SenderType
+  timestamp      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  model          AIModel?
+}
+
+enum SenderType {
+  STUDENT
+  AI
+}
+
+model Question {
+  id            Int            @id @default(autoincrement())
+  question      String
+  answer        Answer?
+  chapter       Chapter        @relation(fields: [chapterId], references: [id])
+  chapterId     Int
+  testQuestions TestQuestion[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Answer {
+  id          Int      @id @default(autoincrement())
+  answer      String
+  explanation String?
+  question    Question @relation(fields: [questionId], references: [id])
+  questionId  Int      @unique
+}
+
+model Test {
+  id            Int            @id @default(autoincrement())
+  course        Course         @relation(fields: [courseId], references: [id])
+  courseId      Int
+  testQuestions TestQuestion[]
+  aiTotalScore  Int?
+  student       Student        @relation(fields: [studentUid], references: [id])
+  studentUid    String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TestQuestion {
+  id            Int      @id @default(autoincrement())
+  studentAnswer String
+  aiScore       Int?
+  aiFeedback    String?
+  test          Test     @relation(fields: [testId], references: [id])
+  testId        Int
+  question      Question @relation(fields: [questionId], references: [id])
+  questionId    Int
+}
+
+model CreditBalance {
+  id           Int           @id @default(autoincrement())
+  balance      Float         @default(0)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String        @unique
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id               Int           @id @default(autoincrement())
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  notes            String?
+  amount           Float
+  promptTokens     Int           @default(0)
+  completionTokens Int           @default(0)
+  model            AIModel?
+  creditBalance    CreditBalance @relation(fields: [creditBalanceId], references: [id], onDelete: Cascade)
+  creditBalanceId  Int
+  createdAt        DateTime      @default(now())
+}
+
+enum AIModel {
+  gpt_4_0125_preview
+  gpt_4_turbo_preview
+  gpt_4_1106_preview
+  gpt_4_vision_preview
+  gpt_4_1106_vision_preview
+  gpt_4
+  gpt_4_0613
+  gpt_4_32k
+  gpt_4_32k_0613
+
+  gpt_3__5_turbo_0125
+  gpt_3__5_turbo
+  gpt_3__5_turbo_1106
+  gpt_3__5_turbo_instruct
+  gpt_3__5_turbo_16k
+  gpt_3__5_turbo_0613
+  gpt_3__5_turbo_16k_0613
+}

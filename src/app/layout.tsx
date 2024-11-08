@@ -1,3 +1,7 @@
+import { Container } from "@/components/atoms/container";
+import { Toaster } from "@/components/molecules/Toaster/Toaster";
+import { Navbar } from "@/components/organisms/Navbar";
+import RootProvider from "@/providers/root-provider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -24,12 +28,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <RootProvider>
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <Navbar />
+          <Container>{children}</Container>
+          <Toaster />
+        </body>
+      </html>
+    </RootProvider>
   );
 }
